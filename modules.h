@@ -9,7 +9,7 @@
 
 #define PACKAGE_QUERY "dpkg-query -f '${binary:Package}\n' -W | wc -l"
 #define BUFFER_LEN 40
-#define ASSERT(a) do { if(a) exit(1); } while(0)
+#define ASSERT(a) if(a) return;
 
 static char buffer[BUFFER_LEN];
 
@@ -26,10 +26,10 @@ void get_shell(char *dest);
 void get_uptime(char *dest);
 void get_packages(char *dest);
 
-void str_lower(char *str);
-void replace_char_in_string(char *str, char from, char to);
-int read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength);
-int read_substring_line(const char fileName[], const char *sub, char *buffer, unsigned char bufferLength);
+void _str_lower(char *str);
+void _replace_char_in_string(char *str, char from, char to);
+int _read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength);
+int _read_substring_line(const char fileName[], const char *sub, char *buffer, unsigned char bufferLength);
 
 
 /**********************************************************************
@@ -38,99 +38,73 @@ int read_substring_line(const char fileName[], const char *sub, char *buffer, un
 
 void get_os(char *dest)
 {
-	  strcpy(dest, "\x1b[1;31mOS:\x1b[0m ");
-	  if (read_substring_line("/etc/os-release", "PRETTY_NAME", buffer, BUFFER_LEN))
-		    return;
+	  ASSERT(_read_substring_line("/etc/os-release", "PRETTY_NAME", buffer, BUFFER_LEN));
 
 	  char *start = strchr(buffer, '"');
 	  char *end = strrchr(buffer, '"');
-	  if (!end || !start) 
-		    return;
-
+	  ASSERT(!end || !start);
 	  *end = '\0';
-	  strcat(dest, ++start);
+
+	  sprintf(dest, "\x1b[1;31mOS:\x1b[0m %s", ++start);
 }
 
 void get_cpu(char *dest)
 {
-	  if (read_line_from_file("/proc/cpuinfo", 5, buffer, BUFFER_LEN))
-		    return;
+	ASSERT(_read_line_from_file("/proc/cpuinfo", 5, buffer, BUFFER_LEN));
+	char *start = strchr(buffer, ':');
 
-	  char *start = strchr(buffer, ':');
+	ASSERT(!start);
 
-	  if (!start)
-		    return;
-
-	  strcpy(dest, "\x1b[1;32mCPU:\x1b[0m ");
-
-	  (start++)[20] = '\0';
-	  strcat(dest, ++start);
+	(start++)[20] = '\0';
+	sprintf(dest, "\x1b[1;32mCPU:\x1b[0m %s", ++start);
 }
 
 void get_battery(char *dest)
 {
-	  strcpy(dest, "\x1b[1;33mBattery:\x1b[0m ");
-	  if (read_line_from_file("/sys/class/power_supply/BAT0/capacity", 1, buffer, BUFFER_LEN)) 
-		    return;
-	  replace_char_in_string(buffer, '\n', '%');
-	  strcat(dest, buffer);
+	ASSERT(_read_line_from_file("/sys/class/power_supply/BAT0/capacity", 1, buffer, BUFFER_LEN));
+	_replace_char_in_string(buffer, '\n', '%');
+	sprintf(dest, "\x1b[1;33mBattery:\x1b[0m %s", buffer);
 }
 
 void get_kernel(char *dest)
 {
 	  struct utsname info;
-	  if (uname(&info))
-		    return;
-
-	  strcpy(dest, "\x1b[1;34mKernel: \x1b[0m");
-	  strcat(dest, info.release);
+	  ASSERT(uname(&info));
+	  sprintf(dest, "\x1b[1;34mKernel:\x1b[0m %s", info.release);
 }
 
 void get_desktop(char *dest)
 {
 	  const char *desktop = getenv("XDG_CURRENT_DESKTOP");
-	  if (!desktop)
-		    return;
-	  strcpy(dest, "\x1b[1;35mDesktop: \x1b[0m");
-	  strcat(dest, desktop);
-
-	  str_lower(dest);
+	  ASSERT(!desktop);
+	  sprintf(dest, "\x1b[1;35mDesktop:\x1b[0m %s", desktop);
+	  _str_lower(dest);
 }
-
 
 void get_shell(char *dest)
 {
 	  const char *shell = getenv("SHELL");
-
-	  if(!shell)
-		    return;
-
-	  strcpy(dest, "\x1b[1;36mShell: \x1b[0m");
-	  strcat(dest, shell);
+	  ASSERT(!shell);
+	  sprintf(dest,  "\x1b[1;36mShell:\x1b[0m %s", shell);
 }
-
 
 void get_packages(char *dest)
 {
 	FILE *fp;
 	fp = popen(PACKAGE_QUERY, "r");
-	if (!fp) 
-	    return;
-
-	strcpy(dest, "\x1b[1;37mPackages:\x1b[0m ");
+	ASSERT(!fp);
 
 	fgets(buffer, 8, fp);
 	pclose(fp);
 	char *tmp = strchr(buffer, '\n');
 	if(tmp)
 		*tmp = '\0';
-	strcat(dest, buffer);
+	sprintf(dest,  "\x1b[1;37mPackages:\x1b[0m %s", buffer);
 }
 
 void get_uptime(char *dest)
 {
-	ASSERT(read_line_from_file("/proc/uptime", 1, buffer, BUFFER_LEN));
-
+	ASSERT(_read_line_from_file("/proc/uptime", 1, buffer, BUFFER_LEN));
 	char *dividor = strchr(buffer, ' ');
 	ASSERT(!dividor++);
 
@@ -162,17 +136,17 @@ void get_uptime(char *dest)
  *                       LOCAL FUNCTIONS                              *
  *********************************************************************/
 
-void str_lower(char *str) {
+void _str_lower(char *str) {
 	  while((*(str++) = tolower(*str)));
 }
 
-void replace_char_in_string(char *str, char from, char to) {
+void _replace_char_in_string(char *str, char from, char to) {
 	  char *tmp = strchr(buffer, from);
 	  if (tmp)
 		    *tmp = to;
 }
 
-int read_substring_line(const char fileName[], const char *sub, char *buffer, unsigned char bufferLength)
+int _read_substring_line(const char fileName[], const char *sub, char *buffer, unsigned char bufferLength)
 {
 	  FILE *file = fopen(fileName, "rb");
 	  if (!file)
@@ -188,7 +162,7 @@ int read_substring_line(const char fileName[], const char *sub, char *buffer, un
 	  return 1;
 }
 
-int read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength)
+int _read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength)
 {
 	  FILE *file = fopen(fileName, "rb");
 	  if (!file)
