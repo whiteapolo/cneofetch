@@ -8,7 +8,8 @@
 #include <stdio.h>
 
 #define PACKAGE_QUERY "dpkg-query -f '${binary:Package}\n' -W | wc -l"
-#define BUFFER_LEN 40
+#define BUFFER_LEN 80
+#define CPU_MODEL_SPACES 3
 #define ASSERT(a) if(a) return;
 
 static char buffer[BUFFER_LEN];
@@ -26,6 +27,7 @@ void get_shell(char *dest);
 void get_uptime(char *dest);
 void get_packages(char *dest);
 
+char *strnchr(char *str, char c, int n);
 void _str_lower(char *str);
 void _replace_char_in_string(char *str, char from, char to);
 int _read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength);
@@ -52,12 +54,12 @@ void get_cpu(char *dest)
 {
 	ASSERT(_read_line_from_file("/proc/cpuinfo", 5, buffer, BUFFER_LEN));
 	char *start = strchr(buffer, ':');
-
-	ASSERT(!start);
-
-	(start++)[20] = '\0';
-	sprintf(dest, "\x1b[1;32mCPU:\x1b[0m %s", ++start);
+	char *end = strnchr(start + 2, ' ', CPU_MODEL_SPACES);
+	ASSERT(!start || !end);
+	*end = '\0';
+	sprintf(dest, "\x1b[1;32mCPU:\x1b[0m %s", start + 2);
 }
+
 
 void get_battery(char *dest)
 {
@@ -117,9 +119,8 @@ void get_uptime(char *dest)
 	int mins = (seconds / 60) % 60;
 
 	strcpy(dest, "\x1b[1;30mUptime:\x1b[0m");
-	char *tmp = dest;
+	char *tmp = &dest[strlen(dest) - 1];
 
-	tmp += strlen(tmp);
 	if (days)
 		sprintf(tmp, " %d days,", days);
 
@@ -135,6 +136,18 @@ void get_uptime(char *dest)
 /**********************************************************************
  *                       LOCAL FUNCTIONS                              *
  *********************************************************************/
+
+char *strnchr(char *str, char c, int n)
+{
+	char *result = str;
+	for (int i = 0; i < n; i++) {
+		result = strchr(result, c);
+		if (!result)
+			return NULL;
+		result++;
+	}
+	return --result;
+}
 
 void _str_lower(char *str) {
 	  while((*(str++) = tolower(*str)));
