@@ -7,7 +7,7 @@
 #include <sys/utsname.h>
 #include <stdio.h>
 
-#define PACKAGES_QUERY "dpkg-query -f '${binary:Package}\n' -W | wc -l"
+#define PACKAGES_QUERY "grep -c \"^Package: \" /var/lib/dpkg/status"
 #define BUFFER_LEN 70
 #define CPU_MODELWORDS 3
 
@@ -20,6 +20,9 @@
 #define PACKAGES_LABEL  "\e[1;97m│\e[0m \x1b[1;37mPackages:\x1b[0m %s"
 #define UPTIME_LABEL    "\e[1;90m│\e[0m \x1b[1;30mUptime:\x1b[0m"
 
+#define DEBIAN 0
+#define ARCH 2
+#define VOID 3
 
 #define ASSERT(a) if(a) return;
 
@@ -41,8 +44,12 @@ void get_packages(char *dest);
 char *_strnchr(char *str, char c, int n);
 void _str_lower(char *str);
 void _replace_char_in_string(char *str, char from, char to);
-int _read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength);
-int _read_substring_line(const char fileName[], const char *sub, char *buffer, unsigned char bufferLength);
+int _read_line_from_file(const char *fileName, unsigned short line, char *buffer, unsigned char bufferLength);
+int _read_substring_line(const char *fileName, const char *sub, char *buffer, unsigned char bufferLength);
+
+char *strcasestr(const char *haystack, const char *needle);
+
+int ___count_pattern_match(const char *fileName, char *pattern);
 
 
 /**********************************************************************
@@ -51,13 +58,12 @@ int _read_substring_line(const char fileName[], const char *sub, char *buffer, u
 
 void get_os(char *dest)
 {
-	  ASSERT(_read_substring_line("/etc/os-release", "PRETTY_NAME", buffer, BUFFER_LEN));
-	  char *start = strchr(buffer, '"');
-	  char *end = strrchr(buffer, '"');
-	  ASSERT(!end || !start);
-	  *end = '\0';
-
-	  sprintf(dest, OS_LABEL, ++start);
+	ASSERT(_read_substring_line("/etc/os-release", "PRETTY_NAME", buffer, BUFFER_LEN));
+	char *start = strchr(buffer, '"');
+	char *end = strrchr(buffer, '"');
+	ASSERT(!end || !start);
+	*end = '\0';
+	sprintf(dest, OS_LABEL, ++start);
 }
 
 void get_cpu(char *dest)
@@ -80,33 +86,31 @@ void get_battery(char *dest)
 
 void get_kernel(char *dest)
 {
-	  struct utsname info;
-	  ASSERT(uname(&info));
-	  sprintf(dest, KERNEL_LABEL, info.release);
+	struct utsname info;
+	ASSERT(uname(&info));
+	sprintf(dest, KERNEL_LABEL, info.release);
 }
 
 void get_desktop(char *dest)
 {
-	  const char *desktop = getenv("XDG_CURRENT_DESKTOP");
-	  ASSERT(!desktop);
-	  sprintf(dest, DESKTOP_LABEL, desktop);
-	  _str_lower(dest);
+	const char *desktop = getenv("XDG_CURRENT_DESKTOP");
+	ASSERT(!desktop);
+	sprintf(dest, DESKTOP_LABEL, desktop);
+	_str_lower(dest);
 }
 
 void get_shell(char *dest)
 {
-	  const char *shell = getenv("SHELL");
-	  ASSERT(!shell);
-	  sprintf(dest, SHELL_LABEL, shell);
+	const char *shell = getenv("SHELL");
+	ASSERT(!shell);
+	sprintf(dest, SHELL_LABEL, shell);
 }
 
 void get_packages(char *dest)
 {
-	FILE *fp;
-	fp = popen(PACKAGES_QUERY, "r");
+	FILE *fp = popen(PACKAGES_QUERY, "r");
 	ASSERT(!fp);
-
-	fgets(buffer, 8, fp);
+	fgets(buffer, BUFFER_LEN, fp);
 	pclose(fp);
 	char *tmp = strchr(buffer, '\n');
 	if(tmp)
@@ -164,35 +168,35 @@ void _str_lower(char *str) {
 }
 
 void _replace_char_in_string(char *str, char from, char to) {
-	  char *tmp = strchr(buffer, from);
-	  if (tmp)
-		    *tmp = to;
+	 char *tmp = strchr(buffer, from);
+	 if (tmp)
+		*tmp = to;
 }
 
-int _read_substring_line(const char fileName[], const char *sub, char *buffer, unsigned char bufferLength)
+int _read_substring_line(const char *fileName, const char *sub, char *buffer, unsigned char bufferLength)
 {
-	  FILE *file = fopen(fileName, "rb");
-	  if (!file)
-		    return 1;
+	FILE *file = fopen(fileName, "rb");
+	if (!file)
+	          return 1;
 
-	  while (fgets(buffer, 50, file)) {
-		    if (strstr(buffer, sub)) {
-				fclose(file);
-				return 0;
-		    }
-	  }
-	  fclose(file);
-	  return 1;
+	while (fgets(buffer, 50, file)) {
+	          if (strstr(buffer, sub)) {
+	      		fclose(file);
+	      		return 0;
+	          }
+	}
+	fclose(file);
+	return 1;
 }
 
-int _read_line_from_file(const char fileName[], unsigned short line, char *buffer, unsigned char bufferLength)
+int _read_line_from_file(const char *fileName, unsigned short line, char *buffer, unsigned char bufferLength)
 {
-	  FILE *file = fopen(fileName, "rb");
-	  if (!file)
-		    return 1;
-	  while(fgets(buffer, bufferLength, file) && --line);
-	  fclose(file);
-	  return 0;
+	FILE *file = fopen(fileName, "rb");
+	if (!file)
+		return 1;
+	while(fgets(buffer, bufferLength, file) && --line);
+	fclose(file);
+	return 0;
 }
 
 #endif
