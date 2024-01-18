@@ -28,6 +28,7 @@ void main(void)
 		j += (results[j][0] != '\0');
 	}
 
+
 	printf(
 	"         \x1b[90m#####\n"
 	"        #######\n"
