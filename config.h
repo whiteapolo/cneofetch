@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define CPU_MODELWORDS 3
+
 #define C0         "\e[0m"     /*  RESET   */
 
 #define C1         "\e[31m"    /*  RED     */
