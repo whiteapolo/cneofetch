@@ -5,6 +5,7 @@
 /*----------TODO-----------*/
 /*
  * TERM 
+ * df -h /
  */
 
 #include <string.h>
@@ -44,7 +45,7 @@
 	}                                                             \
 
 
-static const char package_query[7][2][256] = {
+static const char package_query[][2][256] = {
 {"dpkg", "grep -c \"^Package: \" /var/lib/dpkg/status 2>/dev/null"},
 {"pacman", "ls /var/lib/pacman/local 2>/dev/null | wc -l"},
 {"flatpak", "find /var/lib/flatpak/app /var/lib/flatpak/runtime -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l"},

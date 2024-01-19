@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "logo.h"
 #include "modules.h"
 
 void (*modules[])(char *dest) = {
@@ -29,25 +30,13 @@ void main(void)
 	}
 
 
-	printf(
-	"         \x1b[90m#####\n"
-	"        #######\n"
-	"        ##\e[0m0\x1b[90m#\e[0m0\x1b[90m##             %s\n"
-	"        \x1b[90m#\x1b[33m#####\x1b[90m#             %s\n"
-	"      \x1b[90m##\e[0m##\x1b[33m###\e[0m##\x1b[90m##           %s\n"
-	"     \x1b[90m#\e[0m##########\x1b[90m##          %s\n"
-	"    \x1b[90m#\e[0m############\x1b[90m##         %s\n"
-	"    \x1b[90m#\e[0m###########\x1b[90m####        %s\n"
-	"   \x1b[33m##\x1b[90m#\e[0m###########\x1b[90m##\x1b[33m#        %s\n"
-	" \x1b[33m######\x1b[90m#\e[0m#######\x1b[90m#\x1b[33m######      %s\n"
-	" \x1b[33m#######\x1b[90m#\e[0m#####\x1b[90m#\x1b[33m#######\n"
-	"   #####\x1b[90m#######\x1b[33m#####\n\e[0m",
-	results[0],
-	results[1],
-	results[2],
-	results[3],
-	results[4],
-	results[5],
-	results[6],
-	results[7]);
+	printf(LOGO,
+		results[0],
+		results[1],
+		results[2],
+		results[3],
+		results[4],
+		results[5],
+		results[6],
+		results[7]);
 }
