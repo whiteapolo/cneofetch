@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "logo.h"
+#include "config.h"
 #include "modules.h"
 
 void (*modules[])(char *dest) = {
@@ -19,7 +19,7 @@ void (*modules[])(char *dest) = {
 
 #define MAX_MODULES_COUNT 8
 
-void main(void)
+int main()
 {
 	char results[MAX_MODULES_COUNT][BUFFER_LEN];
 
@@ -39,4 +39,5 @@ void main(void)
 		results[5],
 		results[6],
 		results[7]);
+	return 0;
 }

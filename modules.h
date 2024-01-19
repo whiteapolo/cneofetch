@@ -1,7 +1,6 @@
 #ifndef MODULES_H
 #define MODULES_H
 
-
 /*----------TODO-----------*/
 /*
  * TERM 
@@ -14,18 +13,19 @@
 #include <sys/utsname.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "config.h"
 
 #define BUFFER_LEN 70
 #define CPU_MODELWORDS 3
 
-#define OS_LABEL       "\e[1;91m│\e[0m \x1b[1;31mOS:\x1b[0m %s"
-#define CPU_LABEL      "\e[1;92m│\e[0m \x1b[1;32mCPU:\x1b[0m %s"
-#define BATTERY_LABEL  "\e[1;93m│\e[0m \x1b[1;33mBattery:\x1b[0m %s"
-#define KERNEL_LABEL   "\e[1;94m│\e[0m \x1b[1;34mKernel:\x1b[0m %s"
-#define DESKTOP_LABEL  "\e[1;95m│\e[0m \x1b[1;35mdesktop:\x1b[0m %s"
-#define SHELL_LABEL    "\e[1;96m│\e[0m \x1b[1;36mshell:\x1b[0m %s"
-#define PACKAGES_LABEL "\e[1;97m│\e[0m \x1b[1;37mPackages:\x1b[0m"
-#define UPTIME_LABEL   "\e[1;90m│\e[0m \x1b[1;30mUptime:\x1b[0m"
+#define OS_LABEL       B1"│"B1" OS:\e[0m %s"
+#define CPU_LABEL      B2"│"B2" CPU:\e[0m %s"
+#define BATTERY_LABEL  B3"│"B3" Battery:\e[0m %s"
+#define KERNEL_LABEL   B4"│"B4" Kernel:\e[0m %s"
+#define DESKTOP_LABEL  B5"│"B5" desktop:\e[0m %s"
+#define SHELL_LABEL    B6"│"B6" shell:\e[0m %s"
+#define PACKAGES_LABEL B7"│"B7" Packages:\e[0m"
+#define UPTIME_LABEL   B8"│"B8" Uptime:\e[0m"
 
 #define DAY_IN_SECONDS 86400
 #define HOUR_IN_SECONDS 3600
