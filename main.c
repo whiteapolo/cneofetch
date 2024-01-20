@@ -17,27 +17,29 @@ void (*modules[])(char *dest) = {
 
 #define MODULES_COUNT (sizeof(modules)/sizeof(modules[0]))
 
-#define MAX_MODULES_COUNT 8
+#define SAVE_CURSOR()           fputs("\033[s", stdout)
+#define RESTORE_CURSOR()        fputs("\033[u", stdout)
+#define CURSOR_DOWN(rows)       printf("\033[%dB", rows)
+#define CURSOR_UP(rows)         printf("\033[%dA", rows)
+#define CURSOR_RIGHT(columns)   printf("\033[%dC", columns)
+#define CURSOR_LEFT(columns)    printf("\033[%dD", columns)
 
 int main()
 {
-	char results[MAX_MODULES_COUNT][BUFFER_LEN];
+	char results[BUFFER_LEN];
+	results[0] = '\0';
 
-	for (int i = 0, j = 0; i < MODULES_COUNT; i++) {
-		results[j][0] = '\0';
-		modules[i](results[j]);
-		j += (results[j][0] != '\0');
+	fputs(LOGO, stdout);
+
+	for (int i = 0; i < MODULES_COUNT; i++) {
+		SAVE_CURSOR();
+		CURSOR_UP(10 - i);
+		CURSOR_RIGHT(26);
+		modules[i](results);
+		fputs(results, stdout);
+		i -= !results[0];
+		RESTORE_CURSOR();
 	}
 
-
-	printf(LOGO,
-		results[0],
-		results[1],
-		results[2],
-		results[3],
-		results[4],
-		results[5],
-		results[6],
-		results[7]);
 	return 0;
 }
