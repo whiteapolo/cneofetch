@@ -1,16 +1,18 @@
 # cneofetch
 my own fetch in c
 
-![Image](demo1.jpg)
-
+![Image](screenshots/demo.jpg)
 
 ## Install
 ```sh
-gcc main.c -o cneofetch
+make install
 ```
 ## run
 ```sh
-./cneofetch
+cneofetch
 ```
 
-to run it from anyware add it to your PATH
+## uninstall
+```sh
+sudo make uninstall
+```
