@@ -1,13 +1,14 @@
 #include "files_utils.h"
+#include <stdio.h>
 
-int read_substring_line(const char *fileName, const char *sub, char *buffer, unsigned int bufferLength)
+int read_substring_line(const char *file_name, const char *sub, char *buff, unsigned int buff_len)
 {
-	FILE *file = fopen(fileName, "rb");
+	FILE *file = fopen(file_name, "rb");
 	if (!file)
 	          return 1;
 
-	while (fgets(buffer, 50, file)) {
-	          if (strstr(buffer, sub)) {
+	while (fgets(buff, 50, file)) {
+	          if (strstr(buff, sub)) {
 	      		fclose(file);
 	      		return 0;
 	          }
@@ -16,12 +17,25 @@ int read_substring_line(const char *fileName, const char *sub, char *buffer, uns
 	return 1;
 }
 
-int read_line_from_file(const char *fileName, unsigned int line, char *buffer, unsigned int bufferLength)
+int read_line_from_file(const char *file_name, unsigned int line, char *buff, unsigned int buff_len)
 {
-	FILE *file = fopen(fileName, "rb");
+	FILE *file = fopen(file_name, "rb");
 	if (!file)
 		return 1;
-	while(fgets(buffer, bufferLength, file) && --line);
+	while(fgets(buff, buff_len, file) && --line);
 	fclose(file);
+	return 0;
+}
+
+int read_command(const char *command, char *buff, unsigned int buff_len)
+{
+	FILE *fp = popen(command, "r");
+	if (!fp)
+		return 1;
+
+	if (!fgets(buff, buff_len, fp))
+		buff[0] = '\0';
+
+	pclose(fp);
 	return 0;
 }

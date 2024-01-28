@@ -10,6 +10,8 @@ static const char package_query[][2][256] = {
 {"(xbps)", "xbps-query -l 2>/dev/null | wc -l"}
 };
 
+#define COMMAND_COUNT sizeof(package_query)/sizeof(package_query[0])
+
 #define C0         "\e[0m"     /*  RESET   */
 
 #define C1         "\e[0;31m"    /*  RED     */

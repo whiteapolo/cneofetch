@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-int read_substring_line(const char *fileName, const char *sub, char *buffer, unsigned int bufferLength);
-
-int read_line_from_file(const char *fileName, unsigned int line, char *buffer, unsigned int bufferLength);
+int read_substring_line(const char *file_name, const char *sub, char *buff, unsigned int buff_len);
+int read_line_from_file(const char *file_name, unsigned int line, char *buff, unsigned int buff_len);
+int read_command(const char *command, char *buff, unsigned int buff_len);
 
 #endif

@@ -16,7 +16,7 @@
 #include "utils/files_utils.h"
 #include "utils/string_utils.h"
 
-#define BUFFER_LEN 70
+#define BUFF_LEN 70
 
 #define OS_LABEL          B1"│ OS:"C0" %s"
 #define CPU_LABEL         B2"│ CPU:"C0" %s"

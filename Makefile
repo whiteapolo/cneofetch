@@ -1,20 +1,31 @@
-CC=gcc
-CFLAGS = -Wall -o2
+CC = gcc
+CFLAGS = -Wall -O2
+SRC_DIR = src
+UTIL_SRC_DIR = src/utils
+BUILD_DIR = build
 
-SRC = $(wildcard src/*.c) $(wildcard src/utils/*.c)
+SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
+UTIL_SRC_FILES := $(wildcard $(UTIL_SRC_DIR)/*.c)
 
-all: $(SRC)
-	$(CC) $^ -o exe
+OBJ_FILES := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRC_FILES))
+UTIL_OBJ_FILES := $(patsubst $(UTIL_SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(UTIL_SRC_FILES))
 
-cneofetch: $(SRC)
-	$(CC) -o2 $^ -o $@
+all: $(OBJ_FILES) $(UTIL_OBJ_FILES)
+	$(CC) $(CFLAGS) -o exe $^
 
-install: $(SRC)
-	$(CC) -o2 $^ -o cneofetch
-	mv cneofetch /usr/local/bin 
-
-uninstall:
+install: $(OBJ_FILES) $(UTIL_OBJ_FILES)
+	$(CC) $(CFLAGS) -o cneofetch $^
 	rm -rf /usr/local/bin/cneofetch
+	mv cneofetch /usr/local/bin
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o: $(UTIL_SRC_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	$(RM) -r exe cneofetch
+	rm -f $(BUILD_DIR)/*.o
+	rm -rf exe cneofetch
+
+.PHONY: all clean
