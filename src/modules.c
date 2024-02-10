@@ -1,7 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include "modules.h"
 #include "config.h"
 #include "utils/files_utils.h"
-#include <stdlib.h>
 
 #define ASSERT(a) if(a) return;
 
@@ -10,7 +11,6 @@
 #define MINUTE_IN_SECONDS 60
 
 void __format_vprint(int num, char *buff, const char *label_name, bool *comma);
-
 
 void get_os(char *dest)
 {
@@ -25,14 +25,18 @@ void get_os(char *dest)
 
 void get_cpu(char *dest)
 {
-	char buff[BUFF_LEN];
-	ASSERT(read_line_from_file("/proc/cpuinfo", 5, buff, BUFF_LEN));
-	char *start = strchr(buff, ':');
-	ASSERT(!start);
-	char *end = strnchr(start + 2, ' ', CPU_MODELWORDS);
-	ASSERT(!end);
-	*end = '\0';
-	sprintf(dest,CPU_LABEL, start + 2);
+	/* char buff[BUFF_LEN]; */
+	/* ASSERT(read_line_from_file("/proc/cpuinfo", 5, buff, BUFF_LEN)); */
+	/* char *start = strchr(buff, ':'); */
+	/* ASSERT(!start); */
+	/* char *end = strnchr(start + 2, ' ', CPU_MODELWORDS); */
+	/* ASSERT(!end); */
+	/* *end = '\0'; */
+	/* sprintf(dest,CPU_LABEL, start + 2); */
+
+	struct utsname info;
+	ASSERT(uname(&info));
+	sprintf(dest, CPU_LABEL, info.machine);
 }
 
 
@@ -69,11 +73,12 @@ void get_shell(char *dest)
 void get_packages(char *dest)
 {
 	char buff[BUFF_LEN];
-	char *end = &dest[strlen(dest)];
+	char *end;
 	bool comma = false;
 	int pkg_n = 0;
 
 	strcpy(dest, PACKAGES_LABEL);
+	end = &dest[strlen(dest)];
 
 	for (int i = 0; i < COMMAND_COUNT; i++) {
 		pkg_n = read_command(package_query[i][1], buff, BUFF_LEN) 
@@ -104,12 +109,22 @@ void get_uptime(char *dest)
 
 	bool comma = false;
 
+	/* if minutes is zero than sets it to one */
+	m += !m;
+
 	__format_vprint(d, end, "days", &comma);
 	end += strlen(end);
 	__format_vprint(h, end, "hours", &comma);
 	end += strlen(end);
 	__format_vprint(m, end, "mins", &comma);
 	end += strlen(end);
+}
+
+void get_term(char *dest)
+{
+	const char *term = getenv("TERM");
+	ASSERT(!term);
+	sprintf(dest, TERM_LABEL, term);
 }
 
 
@@ -121,7 +136,7 @@ void __format_vprint(int num, char *buff, const char *label_name, bool *comma)
 	if (num) {
 		if (*comma)
 			strcat(buff++, ",");
-		sprintf(buff, " %d %s", num , label_name);
+		sprintf(buff, " %d %s", num, label_name);
 		*comma = true;
 	}
 }

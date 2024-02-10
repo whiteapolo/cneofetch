@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "config.h"
 #include "modules.h"
+#include <ncurses.h>
 #include "utils/cursors_utils.h"
 
 void (*modules[])(char *dest) = {
@@ -11,7 +12,6 @@ void (*modules[])(char *dest) = {
 	    get_cpu,
 	    get_battery,
 	    get_kernel,
-	    get_desktop,
 	    get_shell,
 	    get_packages,
 	    get_uptime
@@ -23,8 +23,7 @@ void (*modules[])(char *dest) = {
 
 int main(void)
 {
-	char buffer[BUFFER_LEN];
-	buffer[0] = '\0';
+	char buffer[BUFF_LEN];
 
 	fputs(LOGO, stdout);
 	fflush(stdout);
@@ -35,6 +34,7 @@ int main(void)
 		SAVE_CURSOR();
 		CURSOR_UP(MARGIN_BOTTOM - i);
 		CURSOR_RIGHT(26);
+		buffer[0] = '\0';
 		modules[i](buffer);
 		fputs(buffer, stdout);
 		fflush(stdout);

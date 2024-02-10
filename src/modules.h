@@ -3,7 +3,6 @@
 
 /*----------TODO-----------*/
 /*
- * TERM 
  * df -h /
  */
 
@@ -26,6 +25,7 @@
 #define SHELL_LABEL       B6"│ shell:"C0" %s"
 #define PACKAGES_LABEL    B7"│ Packages:"C0
 #define UPTIME_LABEL      B8"│ Uptime:"C0
+#define TERM_LABEL        B1"│ term:"C0" %s"
 
 
 
@@ -37,5 +37,6 @@ void get_desktop(char *dest);
 void get_shell(char *dest);
 void get_uptime(char *dest);
 void get_packages(char *dest);
+void get_term(char *dest);
 
 #endif

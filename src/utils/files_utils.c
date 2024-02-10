@@ -30,11 +30,8 @@ int read_line_from_file(const char *file_name, unsigned int line, char *buff, un
 int read_command(const char *command, char *buff, unsigned int buff_len)
 {
 	FILE *fp = popen(command, "r");
-	if (!fp)
+	if (!fp || !fgets(buff, buff_len, fp))
 		return 1;
-
-	if (!fgets(buff, buff_len, fp))
-		buff[0] = '\0';
 
 	pclose(fp);
 	return 0;
