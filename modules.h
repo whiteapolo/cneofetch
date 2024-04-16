@@ -1,10 +1,45 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "modules.h"
-#include "config.h"
-#include "utils/files_utils.h"
+#ifndef MODULES_H
+#define MODULES_H
 
-#define ASSERT(a) if(a) return;
+/*----------TODO-----------*/
+/*
+ * df -h /
+ */
+
+#include <string.h>
+#include <stdlib.h>
+#include <sys/utsname.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include "config.h"
+#include "files_utils.h"
+#include "string_utils.h"
+
+#define BUFF_LEN 70
+
+#define OS_LABEL          B1"│ OS:"C0" %s"
+#define CPU_LABEL         B2"│ CPU:"C0" %s"
+#define BATTERY_LABEL     B3"│ Battery:"C0" %s"
+#define KERNEL_LABEL      B4"│ Kernel:"C0" %s"
+#define DESKTOP_LABEL     B5"│ desktop:"C0" %s"
+#define SHELL_LABEL       B6"│ shell:"C0" %s"
+#define PACKAGES_LABEL    B7"│ Packages:"C0
+#define UPTIME_LABEL      B8"│ Uptime:"C0
+#define TERM_LABEL        B1"│ term:"C0" %s"
+
+
+bool get_os(char *dest);
+bool get_cpu(char *dest);
+bool get_battery(char *dest);
+bool get_kernel(char *dest);
+bool get_desktop(char *dest);
+bool get_shell(char *dest);
+bool get_uptime(char *dest);
+bool get_packages(char *dest);
+bool get_term(char *dest);
+
+
+#define ASSERT(a) if(a) return false;
 
 #define DAY_IN_SECONDS 86400
 #define HOUR_IN_SECONDS 3600
@@ -12,7 +47,7 @@
 
 void __format_vprint(int num, char *buff, const char *label_name, bool *comma);
 
-void get_os(char *dest)
+bool get_os(char *dest)
 {
 	char buff[BUFF_LEN];
 	ASSERT(read_substring_line("/etc/os-release", "PRETTY_NAME", buff, BUFF_LEN));
@@ -21,56 +56,61 @@ void get_os(char *dest)
 	ASSERT(!end || !start);
 	*end = '\0';
 	sprintf(dest, OS_LABEL, ++start);
+	return true;
 }
 
-void get_cpu(char *dest)
+bool get_cpu(char *dest)
 {
-	/* char buff[BUFF_LEN]; */
-	/* ASSERT(read_line_from_file("/proc/cpuinfo", 5, buff, BUFF_LEN)); */
-	/* char *start = strchr(buff, ':'); */
-	/* ASSERT(!start); */
-	/* char *end = strnchr(start + 2, ' ', CPU_MODELWORDS); */
-	/* ASSERT(!end); */
-	/* *end = '\0'; */
-	/* sprintf(dest,CPU_LABEL, start + 2); */
-
-	struct utsname info;
-	ASSERT(uname(&info));
-	sprintf(dest, CPU_LABEL, info.machine);
+	char buff[BUFF_LEN];
+	ASSERT(read_line_from_file("/proc/cpuinfo", 5, buff, BUFF_LEN));
+	char *start = strchr(buff, ':');
+	ASSERT(!start);
+	char *end = strnchr(start + 2, ' ', CPU_MODELWORDS);
+	ASSERT(!end);
+	*end = '\0';
+	sprintf(dest,CPU_LABEL, start + 2);
+	/* struct utsname info; */
+	/* ASSERT(uname(&info)); */
+	/* sprintf(dest, CPU_LABEL, info.machine); */
+	return true;
 }
 
 
-void get_battery(char *dest)
+bool get_battery(char *dest)
 {
 	char buff[BUFF_LEN];
 	ASSERT(read_line_from_file("/sys/class/power_supply/BAT0/capacity", 1, buff, BUFF_LEN));
 	replace_char_in_string(buff, '\n', '%');
 	sprintf(dest, BATTERY_LABEL, buff);
+	return true;
 }
 
-void get_kernel(char *dest)
+bool get_kernel(char *dest)
 {
 	struct utsname info;
 	ASSERT(uname(&info));
 	sprintf(dest, KERNEL_LABEL, info.release);
+	return true;
 }
 
-void get_desktop(char *dest)
+bool get_desktop(char *dest)
 {
 	const char *desktop = getenv("XDG_CURRENT_DESKTOP");
 	ASSERT(!desktop);
 	sprintf(dest, DESKTOP_LABEL, desktop);
 	str_lower(dest);
+	return true;
 }
 
-void get_shell(char *dest)
+bool get_shell(char *dest)
 {
 	const char *shell = getenv("SHELL");
 	ASSERT(!shell);
 	sprintf(dest, SHELL_LABEL, shell);
+	return true;
 }
 
-void get_packages(char *dest)
+bool get_packages(char *dest)
 {
 	char buff[BUFF_LEN];
 	char *end;
@@ -86,9 +126,10 @@ void get_packages(char *dest)
 		__format_vprint(pkg_n, end, package_query[i][0], &comma);
 		end += strlen(end);
 	}
+	return true;
 }
 
-void get_uptime(char *dest)
+bool get_uptime(char *dest)
 {
 	char buff[BUFF_LEN];
 	ASSERT(read_line_from_file("/proc/uptime", 1, buff, BUFF_LEN));
@@ -118,17 +159,16 @@ void get_uptime(char *dest)
 	end += strlen(end);
 	__format_vprint(m, end, "mins", &comma);
 	end += strlen(end);
+	return true;
 }
 
-void get_term(char *dest)
+bool get_term(char *dest)
 {
 	const char *term = getenv("TERM");
 	ASSERT(!term);
 	sprintf(dest, TERM_LABEL, term);
+	return true;
 }
-
-
-/* local */
 
 
 void __format_vprint(int num, char *buff, const char *label_name, bool *comma)
@@ -140,3 +180,5 @@ void __format_vprint(int num, char *buff, const char *label_name, bool *comma)
 		*comma = true;
 	}
 }
+
+#endif

@@ -5,9 +5,9 @@
 #include "config.h"
 #include "modules.h"
 #include <ncurses.h>
-#include "utils/cursors_utils.h"
+#include "cursors_utils.h"
 
-void (*modules[])(char *dest) = {
+bool (*modules[])(char *dest) = {
 	    get_os,
 	    get_cpu,
 	    get_battery,
@@ -29,16 +29,17 @@ int main(void)
 	fflush(stdout);
 
 	CURSOR_HIDE();
+	char line = 0;
 
 	for (int i = 0; i < MODULES_COUNT; i++) {
 		SAVE_CURSOR();
-		CURSOR_UP(MARGIN_BOTTOM - i);
+		CURSOR_UP(MARGIN_BOTTOM - line);
 		CURSOR_RIGHT(26);
-		buffer[0] = '\0';
-		modules[i](buffer);
-		fputs(buffer, stdout);
-		fflush(stdout);
-		i -= !buffer[0];
+		if (modules[i](buffer)) {
+			fputs(buffer, stdout);
+			fflush(stdout);
+			line++;
+		}
 		RESTORE_CURSOR();
 	}
 

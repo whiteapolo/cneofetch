@@ -1,4 +1,12 @@
-#include "string_utils.h"
+#ifndef STRING_UTILS_H
+#define STRING_UTILS_H
+
+#include <string.h>
+#include <ctype.h>
+
+char *strnchr(char *str, char c, int n);
+void str_lower(char *str);
+void replace_char_in_string(char *str, char from, char to);
 
 char *strnchr(char *str, char c, int n)
 {
@@ -14,7 +22,7 @@ char *strnchr(char *str, char c, int n)
 
 void str_lower(char *str) 
 {
-	  while((*(str++) = tolower(*str)));
+	  while ((*str = tolower(*str))) str++;
 }
 
 void replace_char_in_string(char *str, char from, char to) 
@@ -23,3 +31,5 @@ void replace_char_in_string(char *str, char from, char to)
 	 if (tmp)
 		*tmp = to;
 }
+
+#endif
