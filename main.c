@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <sys/utsname.h>
 
 #define ERROR_IMPL
@@ -160,40 +155,37 @@ void printUpTime()
     printf("\n");
 }
 
-bool printPackage(PackageQuery pq, bool commaAtStart)
+void printPackage(PackageQuery pq)
 {
     string output = newStr("");
 
-    if (getCommandOutput(pq.command, &output, 10) != 0) {
-        strFree(&output);
-        return false;
-    }
+    if (getCommandOutput(pq.command, &output, 10) != 0)
+        goto cleanup;
 
     strPopc(&output); // remove the newLine
 
-    if (!strIsNumeric(output) || strToNumeric(output) == 0) {
-        strFree(&output);
-        return false;
-    }
+    if (!strIsNumeric(output))
+        goto cleanup;
 
-    if (commaAtStart)
-        printf(",");
-    printf(" %s (%s)", output.data, pq.name);
+    if (strToNumeric(output) == 0)
+        goto cleanup;
 
-    strFree(&output);
-    return true;
+    printf(" %s (%s),", output.data, pq.name);
+
+    cleanup: strFree(&output);
 }
 
 void printPackages()
 {
-    bool addComma = false;
     printf(B7"│ Packages:"C0"");
+
     for (int i = 0; i < packageQuerySize; i++) {
         PackageQuery pq = packageQuery[i];
-        addComma = addComma | printPackage(pq, addComma);
+        printPackage(pq);
     }
 
-    printf("\n");
+    cursorLeft(1); // remove the last ','
+    printf(" \n");
 }
 
 void printTerm()

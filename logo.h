@@ -22,7 +22,7 @@
 #define B7  "\e[1;97m"  /*  BOLD WHITE   */
 #define B8  "\e[1;90m"  /*  BOLD GRAY    */
 
-const char LOGO[] = {
+const char penguin[] = {
     "        "C8"#####"C0"\n"
     "       "C8"#######"C0"\n"
     "       "C8"##"C0"0"C8"#"C0"0"C8"##"C0"\n"
@@ -36,5 +36,22 @@ const char LOGO[] = {
     ""C3"#######"C8"#"C0"#####"C8"#"C3"#######"C0"\n"
     "  "C3"#####"C8"#######"C3"#####"C0"\n"
 };
+
+const char star[] = {
+    B1"       ,O,         \n"
+    B2"      ,OOO,        \n"
+    B3"'oooooOOOOOooooo'  \n"
+    B4"  `OOOOOOOOOOO`    \n"
+    B5"    `OOOOOOO`      \n"
+    B6"    OOOO'OOOO      \n"
+    B7"   OOO'   'OOO     \n"
+    B8"  O'         'O    \n"
+};
+
+const char emptyLogo[] = {
+    "\n"
+};
+
+const char *LOGO = penguin;
 
 #endif
