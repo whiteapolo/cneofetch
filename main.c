@@ -1,16 +1,16 @@
 #include <sys/utsname.h>
 
 #define ERROR_IMPL
-#include "error.h"
+#include "external/error.h"
 
 #define STRING_IMPL
-#include "string.h"
+#include "external/string.h"
 
 #define PATH_IMPL
-#include "path.h"
+#include "external/path.h"
 
 #define CURSOR_IMPL
-#include "cursor.h"
+#include "external/cursor.h"
 
 #include "logo.h"
 
