@@ -248,5 +248,6 @@ int main(void)
 
     enableLineWrap();
     showCursor();
+
     return EXIT_SUCCESS;
 }
