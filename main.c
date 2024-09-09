@@ -60,7 +60,7 @@ const PackageQuery packageQuery[] = {
     { "dpkg", "grep -sc \"^Package: \" /var/lib/dpkg/status" },
     { "pacman", "ls -f /var/lib/pacman/local 2>/dev/null | wc -l" },
     { "flatpak", "find /var/lib/flatpak/app /var/lib/flatpak/runtime -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l" },
-    { "dnf", "dnf list installed 2>/dev/null | wc -l" },
+    { "rpm", "dnf list installed 2>/dev/null | wc -l" },
     { "xbps", "xbps-query -l 2>/dev/null | wc -l"},
 };
 
