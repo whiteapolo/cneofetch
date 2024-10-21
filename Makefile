@@ -1,6 +1,6 @@
 # Variables
 CC = gcc
-CFLAGS = -Wall -Wextra -O3
+CFLAGS = -Wall -Wextra -O0
 TARGET = cneofetch
 PREFIX = ~/.local/bin
 

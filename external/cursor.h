@@ -1,7 +1,10 @@
 #ifndef CURSOR_H
 #define CURSOR_H
 
-#include "error.h"
+#ifndef RESULT
+#define RESULT
+typedef enum { Ok = 0, Err = -1, } Result;
+#endif
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
@@ -52,8 +55,8 @@ enum CURSOR_STYLE {
 	BEAM_BLINKING = 5,
 };
 
-ERROR enableRawMode(int vminKeys, int vtime);
-ERROR disableRawMode();
+Result enableRawMode(int vminKeys, int vtime);
+Result disableRawMode();
 
 void disableLineWrap();
 void enableLineWrap();
@@ -63,7 +66,7 @@ void showCursor();
 
 void setCursorStyle(enum CURSOR_STYLE style);
 
-ERROR getCursorPos(int *x, int *y);
+Result getCursorPos(int *x, int *y);
 void setCursorPos(int x, int y);
 
 void setCursorX(int x);
@@ -73,7 +76,7 @@ void cursorDown(int n);
 void cursorRight(int n);
 void cursorLeft(int n);
 
-// unsupoerted on some terminals
+// unsupported on some terminals
 void saveCursorPos();
 void restoreCursorPos();
 
@@ -85,13 +88,13 @@ void clearScreen();
 
 void updateScreen();
 
-ERROR getScreenSizeByCursor(int *width, int *height);
-ERROR getScreenSizeByIoctl(int *width, int *height);
-ERROR getScreenSize(int *width, int *height);
+Result getScreenSizeByCursor(int *width, int *height);
+Result getScreenSizeByIoctl(int *width, int *height);
+Result getScreenSize(int *width, int *height);
 
-ERROR registerChangeInWindowSize(void (*funciton)(int));
+Result registerChangeInWindowSize(void (*funciton)(int));
 
-ERROR enableFullBuffering(FILE *fp);
+Result enableFullBuffering(FILE *fp);
 
 int waitForByte();
 int readEscapeKey();
@@ -99,226 +102,225 @@ int readKey();
 
 #ifdef CURSOR_IMPL
 
-    #include <termios.h>
-    #include <stdio.h>
-    #include <unistd.h>
-    #include <errno.h>
-    #include <sys/ioctl.h>
-    #include <stdlib.h>
-    #include <signal.h>
-    #include "error.h"
+#include <termios.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <stdlib.h>
+#include <signal.h>
+#include "error.h"
 
-    static struct termios originalTermios;
+static struct termios originalTermios;
 
-    ERROR enableRawMode(int vminKeys, int vtime)
-    {
-        if (tcgetattr(STDIN_FILENO, &originalTermios) == -1)
-            return "tcgetattr error";
+Result enableRawMode(int vminKeys, int vtime)
+{
+	if (tcgetattr(STDIN_FILENO, &originalTermios) == -1)
+		return Err;
 
-        struct termios raw = originalTermios;
-        raw.c_cc[VMIN] = vminKeys;
-        raw.c_cc[VTIME] = vtime;
-        raw.c_cflag |= (CS8);
-        raw.c_oflag &= ~(OPOST);
-        raw.c_iflag &= ~(IXON | ICRNL | ISTRIP | INPCK | BRKINT);
-        raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
+	struct termios raw = originalTermios;
+	raw.c_cc[VMIN] = vminKeys;
+	raw.c_cc[VTIME] = vtime;
+	raw.c_cflag |= (CS8);
+	raw.c_oflag &= ~(OPOST);
+	raw.c_iflag &= ~(IXON | ICRNL | ISTRIP | INPCK | BRKINT);
+	raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
 
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
-            return "tcsetattr error";
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+		return Err;
 
-        return OK;
-    }
+	return Ok;
+}
 
-    ERROR disableRawMode()
-    {
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &originalTermios) == -1)
-            return "tcsetattr error";
-        return OK;
-    }
+Result disableRawMode()
+{
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &originalTermios) == -1)
+		return Err;
+	return Ok;
+}
 
-    void disableLineWrap()
-    {
-        printf("\e[?7l");
-    }
+void disableLineWrap()
+{
+	printf("\e[?7l");
+}
 
-    void enableLineWrap()
-    {
-        printf("\e[?7h");
-    }
+void enableLineWrap()
+{
+	printf("\e[?7h");
+}
 
-    void hideCursor()
-    {
-        printf("\e[?25l");
-    }
+void hideCursor()
+{
+	printf("\e[?25l");
+}
 
-    void showCursor()
-    {
-        printf("\e[?25h");
-    }
+void showCursor()
+{
+	printf("\e[?25h");
+}
 
-    void setCursorStyle(enum CURSOR_STYLE style)
-    {
-        printf("\e[%d q", (int)style);
-    }
+void setCursorStyle(enum CURSOR_STYLE style)
+{
+	printf("\e[%d q", (int)style);
+}
 
-    ERROR getCursorPos(int *x, int *y)
-    {
-        printf("\033[6n");
-        if (scanf("\e[%d;%dR", y, x) == 2)
-            return OK;
-        return SCANF_ERROR;
-    }
+Result getCursorPos(int *x, int *y)
+{
+	printf("\033[6n");
+	if (scanf("\e[%d;%dR", y, x) == 2)
+		return Ok;
+	return Err;
+}
 
-    void setCursorPos(int x, int y)
-    {
-        printf("\e[%d;%dH", y ,x);
-    }
+void setCursorPos(int x, int y)
+{
+	printf("\e[%d;%dH", y ,x);
+}
 
-    void setCursorX(int x)
-    {
-        printf("\e[%dG", x);
-    }
+void setCursorX(int x)
+{
+	printf("\e[%dG", x);
+}
 
-    void cursorUp(int n)
-    {
-        printf("\e[%dA", n);
-    }
+void cursorUp(int n)
+{
+	printf("\e[%dA", n);
+}
 
-    void cursorDown(int n)
-    {
-        printf("\e[%dB", n);
-    }
+void cursorDown(int n)
+{
+	printf("\e[%dB", n);
+}
 
-    void cursorRight(int n)
-    {
-        printf("\e[%dC", n);
-    }
+void cursorRight(int n)
+{
+	printf("\e[%dC", n);
+}
 
-    void cursorLeft(int n)
-    {
-        printf("\e[%dD", n);
-    }
+void cursorLeft(int n)
+{
+	printf("\e[%dD", n);
+}
 
-    void saveCursorPos()
-    {
-        printf("\e[s");
-    }
+void saveCursorPos()
+{
+	printf("\e[s");
+}
 
-    void restoreCursorPos()
-    {
-        printf("\e[u");
-    }
+void restoreCursorPos()
+{
+	printf("\e[u");
+}
 
-    void enterAlternativeScreen()
-    {
-        printf("\e[?1049h");
-    }
+void enterAlternativeScreen()
+{
+	printf("\e[?1049h");
+}
 
-    void exitAlternativeScreen()
-    {
-        printf("\e[?1049l");
-    }
+void exitAlternativeScreen()
+{
+	printf("\e[?1049l");
+}
 
-    void clearLine()
-    {
-        printf("\e[K");
-    }
+void clearLine()
+{
+	printf("\e[K");
+}
 
-    void clearScreen()
-    {
-        printf("\e[2J");
-    }
+void clearScreen()
+{
+	printf("\e[2J");
+}
 
-    void updateScreen()
-    {
-        fflush(stdout);
-    }
+void updateScreen()
+{
+	fflush(stdout);
+}
 
-    ERROR getScreenSizeByCursor(int *width, int *height)
-    {
-        setCursorPos(999, 999);
-        return getCursorPos(width, height);
-    }
+Result getScreenSizeByCursor(int *width, int *height)
+{
+	setCursorPos(999, 999);
+	return getCursorPos(width, height);
+}
 
-    ERROR getScreenSizeByIoctl(int *width, int *height)
-    {
-        struct winsize ws;
+Result getScreenSizeByIoctl(int *width, int *height)
+{
+	struct winsize ws;
 
-        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != 0)
-            return "ioctl error";
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != 0)
+		return Err;
 
-        *width = ws.ws_col;
-        *height = ws.ws_row;
-        return OK;
-    }
+	*width = ws.ws_col;
+	*height = ws.ws_row;
+	return Ok;
+}
 
-    ERROR getScreenSize(int *width, int *height)
-    {
-        if (getScreenSizeByIoctl(width, height) == OK)
-            return OK;
+Result getScreenSize(int *width, int *height)
+{
+	if (getScreenSizeByIoctl(width, height) == Ok)
+		return Ok;
 
-        return getScreenSizeByCursor(width, height);
-    }
+	return getScreenSizeByCursor(width, height);
+}
 
-    ERROR registerChangeInWindowSize(void (*funciton)(int))
-    {
-        struct sigaction sa;
-        sa.sa_handler = funciton;
-        sa.sa_flags = 0;
-        sigemptyset(&sa.sa_mask);
+Result registerChangeInWindowSize(void (*funciton)(int))
+{
+	struct sigaction sa;
+	sa.sa_handler = funciton;
+	sa.sa_flags = 0;
+	sigemptyset(&sa.sa_mask);
 
-        if (sigaction(SIGWINCH, &sa, NULL) == -1)
-            return "sigaction error";
+	if (sigaction(SIGWINCH, &sa, NULL) == -1)
+		return Err;
 
-        return OK;
-    }
+	return Ok;
+}
 
-    ERROR enableFullBuffering(FILE *fp)
-    {
-        // do not flush on '\n'
-        if (setvbuf(fp, NULL, _IOFBF, BUFSIZ) != 0)
-            return "setvbuf error";
-        return OK;
-    }
+Result enableFullBuffering(FILE *fp)
+{
+	// do not flush on '\n'
+	if (setvbuf(fp, NULL, _IOFBF, BUFSIZ) != 0)
+		return Err;
+	return Ok;
+}
 
-    int waitForByte()
-    {
-        char c;
-        // while (read(STDIN_FILENO, &c, 1) != 1);
-        if (read(STDIN_FILENO, &c, 1) != 1)
-            return EMPTY_KEY;
-        return c;
-    }
+int waitForByte()
+{
+	char c;
+	if (read(STDIN_FILENO, &c, 1) != 1)
+		return EMPTY_KEY;
+	return c;
+}
 
-    #define SEQUENCE(a, b) ((unsigned short)((((unsigned short)b) << 8) | a))
+#define SEQUENCE(a, b) ((unsigned short)((((unsigned short)b) << 8) | a))
 
-    int readEscapeKey()
-    {
-        unsigned short key;
+int readEscapeKey()
+{
+	unsigned short key;
 
-        if (read(STDIN_FILENO, &key, 2) != 2)
-            return '\e';
+	if (read(STDIN_FILENO, &key, 2) != 2)
+		return '\e';
 
-        switch (key) {
-            case SEQUENCE('[', 'A'): return ARROW_UP;
-            case SEQUENCE('[', 'B'): return ARROW_DOWN;
-            case SEQUENCE('[', 'C'): return ARROW_RIGHT;
-            case SEQUENCE('[', 'D'): return ARROW_LEFT;
-            case SEQUENCE('[', '1'): return HOME; // might be with a ~
-            case SEQUENCE('[', '5'): return PAGE_UP; // might be with a ~
-            case SEQUENCE('[', '6'): return PAGE_DOWN; // might be with a ~
-        }
+	switch (key) {
+		case SEQUENCE('[', 'A'): return ARROW_UP;
+		case SEQUENCE('[', 'B'): return ARROW_DOWN;
+		case SEQUENCE('[', 'C'): return ARROW_RIGHT;
+		case SEQUENCE('[', 'D'): return ARROW_LEFT;
+		case SEQUENCE('[', '1'): return HOME; // might be with a ~
+		case SEQUENCE('[', '5'): return PAGE_UP; // might be with a ~
+		case SEQUENCE('[', '6'): return PAGE_DOWN; // might be with a ~
+	}
 
-        return '\e';
-    }
+	return '\e';
+}
 
-    int readKey()
-    {
-        char c = waitForByte();
-        if (c == '\e')
-            return readEscapeKey();
-        return c;
-    }
+int readKey()
+{
+	char c = waitForByte();
+	if (c == '\e')
+		return readEscapeKey();
+	return c;
+}
 
 #endif
 

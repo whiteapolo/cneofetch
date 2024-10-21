@@ -1,7 +1,6 @@
+#include <stdio.h>
+#include <string.h>
 #include <sys/utsname.h>
-
-#define ERROR_IMPL
-#include "external/error.h"
 
 #define STRING_IMPL
 #include "external/string.h"
@@ -32,21 +31,21 @@ void printTerm();
 void printDektop();
 
 void (*const modules[])() = {
-    printOS,
+    // printOS,
     printCpu,
-    printBattery,
-    printKernel,
-    printDektop,
-    printShell,
-    printPackages,
-    printUpTime,
+    // printBattery,
+    // printKernel,
+    // printDektop,
+    // printShell,
+    // printPackages,
+    // printUpTime,
     // printTerm,
 };
 
 const int modulesSize = sizeof(modules) / sizeof(modules[0]);
 
 typedef struct {
-    strView data;
+	strSlice data;
     int x;
     int y;
 } Logo;
@@ -73,61 +72,62 @@ int max(int a, int b)
 
 void printOS()
 {
-    string file = newStr("");
-    if (readWholeFileB(&file, "/etc/os-release", 4096) != OK) {
-        strFree(&file);
-        return;
-    }
-    strView prefix = newStrView("PRETTY_NAME=\"");
-    int start = strStr(file, prefix, 0);
-    if (start == -1) {
-        strFree(&file);
-        return;
-    }
-    start += prefix.len;
-    int end = strStr(file, newStrView("\"\n"), start);
-    if (end == -1) {
-        strFree(&file);
-        return;
-    }
-    strView res = newStrViewRange(file, start, end);
-    printf(B1"│ OS:"C0" %.*s\n", res.len, res.data);
+	return;
+    // string file = newStr("");
+    // if (readWholeFileB(&file, "/etc/os-release", 4096) != Ok) {
+    //     strFree(&file);
+    //     return;
+    // }
+    // strView prefix = newStrView("PRETTY_NAME=\"");
+    // int start = strStr(file, prefix, 0);
+    // if (start == -1) {
+    //     strFree(&file);
+    //     return;
+    // }
+    // start += prefix.len;
+    // int end = strStr(file, newStrView("\"\n"), start);
+    // if (end == -1) {
+    //     strFree(&file);
+    //     return;
+    // }
+    // strView res = newStrViewRange(file, start, end);
+    // printf(B1"│ OS:"C0" %.*s\n", res.len, res.data);
 
-    strFree(&file);
+    // strFree(&file);
 }
 
 void printCpu()
 {
     struct utsname info;
     if (uname(&info) == 0)
-        printf(B2 "│ CPU: " C0 "%s\n", info.machine);
+        printf(B2 "│ CPU:" C0 " %s\n", info.machine);
 }
 
 void printBattery()
 {
     int capacity;
-    if (scanFile("/sys/class/power_supply/BAT0/capacity", "%d", &capacity) == OK)
-        printf(B3 "│ Battery: " C0 "%d%%\n", capacity);
+    if (readFile("/sys/class/power_supply/BAT0/capacity", "%d", &capacity) == Ok)
+        printf(B3 "│ Battery:" C0 " %d%%\n", capacity);
 }
 
 void printKernel()
 {
     struct utsname info;
     if (uname(&info) == 0)
-        printf(B4 "│ Kernel: " C0 "%s\n", info.release);
+        printf(B4 "│ Kernel:" C0 " %s\n", info.release);
 }
 
 void printShell()
 {
     const char *shell = getenv("SHELL");
     if (shell != NULL)
-        printf(B6 "│ Shell: " C0 "%s\n", shell);
+        printf(B6 "│ Shell:" C0 " %s\n", shell);
 }
 
 void printUpTime()
 {
     int seconds;
-    if (scanFile("/proc/uptime", "%d ", &seconds) != OK) {
+    if (readFile("/proc/uptime", "%d ", &seconds) != Ok) {
         return;
     }
 
@@ -158,22 +158,18 @@ void printUpTime()
 
 void printPackage(PackageQuery pq)
 {
-    string output = newStr("");
+	FILE *fp = popen(pq.command, "r");
+	if (fp == NULL)
+		return;
 
-    if (getCommandOutput(pq.command, &output, 10) != 0)
-        goto cleanup;
+	int num;
+	if (fscanf(fp, "%d", &num) != 1) {
+		pclose(fp);
+		return;
+	}
 
-    strPopc(&output); // remove the newLine
-
-    if (!strIsNumeric(output))
-        goto cleanup;
-
-    if (strToNumeric(output) == 0)
-        goto cleanup;
-
-    printf(" %s (%s),", output.data, pq.name);
-
-    cleanup: strFree(&output);
+    printf(" %d (%s),", num, pq.name);
+	pclose(fp);
 }
 
 void printPackages()
@@ -200,26 +196,29 @@ void printDektop()
 {
     const char *desktop = getenv("DESKTOP_SESSION");
     if (desktop != NULL)
-        printf(B5 "│ Desktop: " C0 "%s\n", desktop);
+        printf(B5 "│ Desktop:" C0 " %s\n", desktop);
 }
 
 Logo newLogo(const char *data)
 {
-    Logo logo;
-    logo.data = newStrView(data);
-    logo.y = strCountc(logo.data, '\n');
+    Logo logo = {
+		.data = newStrSlice(data, strlen(data)),
+		.x = 0,
+		.y = strCountc(&logo.data, '\n'),
+	};
 
-    logo.x = 0;
-    strForEachTok(logo.data, "\n", lambda(void, (strView line) {
-        logo.x = max(logo.x, strDisplayedLength(line));
-    }));
-    
+	strSlice line = strTokStart(&logo.data, "\n");
+	while (!strIsEmpty(&line)) {
+		logo.x = max(logo.x, strDisplayedLength(&line));
+		line = strTok(&logo.data, &line, "\n");
+	}
+
     return logo;
 }
 
-void printLogo(const Logo logo)
+void printLogo(const Logo *logo)
 {
-    strPrint(logo.data);
+    strPrint(&logo->data);
 }
 
 void printModules(void (*const modules[])(), int size, int rightOffset)
@@ -237,7 +236,7 @@ int main(void)
     disableLineWrap();
 
     Logo logo = newLogo(LOGO);
-    printLogo(logo);
+    printLogo(&logo);
 
     cursorUp(logo.y - TOP_MARGIN);
 
@@ -245,7 +244,7 @@ int main(void)
 
     setCursorX(0);
     if (logo.y > modulesSize + TOP_MARGIN)
-        cursorDown(logo.y - TOP_MARGIN - modulesSize);
+        cursorDown(logo.y - TOP_MARGIN - modulesSize + 1);
 
     enableLineWrap();
     showCursor();

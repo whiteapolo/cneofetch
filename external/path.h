@@ -1,242 +1,151 @@
 #ifndef PATH_H
 #define PATH_H
-
-#include "string.h"
-#include "error.h"
+#include <stdarg.h>
 #include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <stdbool.h>
+#include <errno.h>
 
-#define lambda(return_type, function_body)  \
-({                                          \
-    return_type __fn__ function_body        \
-    __fn__;                                 \
- })
+#ifndef RESULT
+#define RESULT
+typedef enum { Ok = 0, Err = -1, } Result;
+#endif
 
-strView getPathTail(const char *path);
+typedef enum { Read = 0, Write = 1, } PipeMode;
 
-strView getEnvView(const char *name);
-
-strView getHomePath();
-
-void expandPath(string *path);
-
-void compressPath(string *path);
-
+int pathGetFmtSize(const char *fmt, ...);
+int pathGetFmtSizeVa(const char *fmt, va_list ap);
 int getFileSize(FILE *fp);
 
-ERROR readWholeFile(string *s, const char *fileName);
-ERROR readWholeFileB(string *s, const char *fileName, int maxBytes);
+const char *getPathExtention(const char *path);
+const char *getHomePath();
+void expandPath(char *path, const int maxLen);
+void compressPath(char *path);
+bool isExtentionEqual(const char *path, const char *extention);
 
-ERROR scanFile(const char *fileName, const char *fmt, ...);
-ERROR echoToFile(const char *fileName, const char *fmt, ...);
-ERROR echoAppendToFile(const char *fileName, const char *fmt, ...);
+int dirTraverse(const char *dir, bool (*action)(const char *));
+int traverseFile(const char *fileName, const int bufSize, bool (*action)(char[bufSize]));
 
-ERROR dirTraverse(const char *dir, void (*action)(const char *));
-ERROR dirTraverseHiddenFiles(const char *dir, void (*action)(const char *));
-ERROR dirTraverseVisibleFiles(const char *dir, void (*action)(const char *));
-
-int getCommandOutput(const char *command, string *output, int maxBytes);
-
-bool isdir(const char *fmt, ...);
-
+bool isdir(const char *path);
 bool isregfile(const char *fileName);
-
 bool isfile(const char *fileName);
 
+int echoFileWrite(const char *fileName, const char *fmt, ...);
+int echoFileAppend(const char *fileName, const char *fmt, ...);
+int readFile(const char *fileName, const char *fmt, ...);
+int redirectFd(int srcFd, const char *destFileName);
+int popen2(char *path, char *argv[], FILE *ppipe[2]);
+
+void getFullFileName(const char *dirName, const char *fileName, char *dest, int destLen);
+
+int nextInDir(DIR *dir, const char *dirName, char *destFileName, int destLen);
+
 #ifdef PATH_IMPL
-
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
 
-strView getPathTail(const char *path)
+int pathGetFmtSize(const char *fmt, ...)
 {
-	(void)path;
-	return EMPTY_STR;
-	// strView s;
-	// int pathLen = strlen(path);
-	// int i = pathLen - 1;
-
-	// if (path[i] == '/') {
-	// 	s.len = 0;
-	// 	return s;
-	// }
-
-	// while (i > 0 && path[i - 1] != '/')
-	// 	i--;
-
-	// return path + i;
+	va_list ap;
+	va_start(ap, fmt);
+	const int size = vsnprintf(NULL, 0, fmt, ap);
+	va_end(ap);
+	return size;
 }
 
-strView getEnvView(const char *name)
+int pathGetFmtSizeVa(const char *fmt, va_list ap)
 {
-	const char *env = getenv(name);
-	if (env == NULL)
-		return EMPTY_STR;
-	return newStrView(env);
-}
-
-strView getHomePath()
-{
-	strView s = getEnvView("HOME");
-	if (strIsEmpty(s))
-		return newStrView(".");
-	return s;
-}
-
-void expandPath(string *path)
-{
-	if (path->data[0] == '~')
-		strReplace(path, newStrView("~"), getHomePath(), 1);
-}
-
-void compressPath(string *path)
-{
-	strView home = getHomePath();
-	if (strnIsEqual(*path, home, home.len))
-		strReplace(path, home, newStrView("~"), 1);
+	return vsnprintf(NULL, 0, fmt, ap);
 }
 
 int getFileSize(FILE *fp)
 {
 	int curr = ftell(fp);
 	fseek(fp, 0, SEEK_END);
-	int size = ftell(fp);
+	const int size = ftell(fp);
 	fseek(fp, curr, SEEK_SET);
 	return size;
 }
 
-ERROR readWholeFile(string *s, const char *fileName)
+const char *getPathExtention(const char *path)
 {
-	return readWholeFileB(s, fileName, -1);	
+	const char *lastDot = strrchr(path, '.');
+	if (lastDot == NULL)
+		return path;
+	return lastDot + 1;
 }
 
-ERROR readWholeFileB(string *s, const char *fileName, int maxBytes)
+const char *getHomePath()
 {
-	string expandedPath = newStr(fileName);
-	expandPath(&expandedPath);
-
-	FILE *fp = fopen(expandedPath.data, "r");
-	strFree(&expandedPath);
-
-	if (fp == NULL)
-		return FILE_NOT_FOUND;
-
-	char c;
-
-	while ((c = fgetc(fp)) != EOF && s->len != maxBytes)
-		strPushc(s, c);
-
-	fclose(fp);
-	return OK;
+	const char *home = getenv("HOME");
+	if (home == NULL)
+		return ".";
+	return home;
 }
 
-ERROR scanFile(const char *fileName, const char *fmt, ...)
+void expandPath(char *path, const int maxLen)
 {
-	va_list ap;
-	va_start(ap, fmt);
-
-	FILE *fp = fopen(fileName, "r");
-
-	if (fp == NULL)
-		return FILE_NOT_FOUND;
-
-	if (vfscanf(fp, fmt, ap) == EOF) {
-        fclose(fp);
-		return SCANF_ERROR;
-    }
-
-	va_end(ap);
-    fclose(fp);
-	return OK;
+	if (path[0] == '~') {
+		char buf[maxLen];
+		snprintf(buf, maxLen, "%s%s", getHomePath(), path + 1);
+		strncpy(path, buf, maxLen);
+	}
 }
 
-ERROR echoToFile(const char *fileName, const char *fmt, ...)
+void compressPath(char *path)
 {
-	va_list ap;
-	va_start(ap, fmt);
-
-	FILE *fp = fopen(fileName, "w");
-
-	if (fp == NULL)
-		return FILE_NOT_FOUND;
-
-	vfprintf(fp, fmt, ap);
-	va_end(ap);
-	return OK;
+	const char *home = getHomePath();
+	const int homeLen = strlen(home);
+	if (strncmp(home, path, homeLen) == 0) {
+		const int bufLen = strlen(path) + homeLen;
+		char buf[bufLen];
+		snprintf(buf, bufLen, "~%s", path + homeLen);
+		strncpy(path, buf, bufLen);
+	}
 }
 
-ERROR echoAppendToFile(const char *fileName, const char *fmt, ...)
+Result nextInDir(DIR *dir, const char *dirName, char *destFileName, int destLen)
 {
-	va_list ap;
-	va_start(ap, fmt);
-
-	FILE *fp = fopen(fileName, "a");
-
-	if (fp == NULL)
-		return FILE_NOT_FOUND;
-
-	vfprintf(fp, fmt, ap);
-	va_end(ap);
-	return OK;
+	struct dirent *de;
+	de = readdir(dir);
+	if (de == NULL)
+		return Err;
+	snprintf(destFileName, destLen, "%s/%s", dirName, de->d_name);
+	return Ok;
 }
 
-ERROR dirTraverse(const char *dir, void (*action)(const char *))
+Result dirTraverse(const char *dir, bool (*action)(const char *))
 {
 	struct dirent *de;
 	DIR *dr = opendir(dir);
 
 	if (dr == NULL)
-		return FILE_NOT_FOUND;
+		return Err;
 
-	while ((de = readdir(dr)) != NULL)
-		action(de->d_name);
+	while ((de = readdir(dr)) != NULL) {
+		const char *file = de->d_name;
+		char fullPath[PATH_MAX];
+		const int len = snprintf(fullPath, PATH_MAX, "%s/%s", dir, file);
+		fullPath[len] = '\0';
+		if (action(fullPath) == false)
+			break;
+	}
 
 	closedir(dr);
-	return OK;
+	return Ok;
 }
 
-ERROR dirTraverseHiddenFiles(const char *dir, void (*action)(const char *))
+bool isExtentionEqual(const char *path, const char *extention)
 {
-	return dirTraverse(dir, lambda(void, (const char *fileName) {
-		if (*fileName == '.')
-			action(fileName);
-	}));
+	return strcmp(getPathExtention(path), extention) == 0;
 }
 
-ERROR dirTraverseVisibleFiles(const char *dir, void (*action)(const char *))
+bool isdir(const char *path)
 {
-	return dirTraverse(dir, lambda(void, (const char *fileName) {
-		if (*fileName != '.')
-			action(fileName);
-	}));
-}
-
-int getCommandOutput(const char *command, string *output, int maxBytes)
-{
-    FILE *fp = popen(command, "r");
-        
-    if (fp == NULL)
-        return -1;
-
-    char c;
-
-    while ((c = fgetc(fp)) != EOF && output->len != maxBytes)
-        strPushc(output, c);
-
-    return pclose(fp);
-}
-
-bool isdir(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    strStack tmp = newStrVa(fmt, ap);
 	struct stat sb;
-	stat(tmp.data, &sb);
-    va_end(ap);
+	stat(path, &sb);
 	return S_ISDIR(sb.st_mode);
 }
 
@@ -252,6 +161,120 @@ bool isfile(const char *fileName)
 	return !access(fileName, F_OK);
 }
 
-#endif
+Result echoFileWrite(const char *fileName, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
 
+	FILE *fp = fopen(fileName, "w");
+
+	if (fp == NULL)
+		return Err;
+
+	vfprintf(fp, fmt, ap);
+	va_end(ap);
+	return Ok;
+}
+
+Result echoFileAppend(const char *fileName, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+
+	FILE *fp = fopen(fileName, "a");
+
+	if (fp == NULL)
+		return Err;
+
+	vfprintf(fp, fmt, ap);
+	va_end(ap);
+	return Ok;
+}
+
+Result readFile(const char *fileName, const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+
+	FILE *fp = fopen(fileName, "r");
+
+	if (fp == NULL)
+		return Err;
+
+	if (vfscanf(fp, fmt, ap) == EOF) {
+        fclose(fp);
+		return Err;
+    }
+
+	va_end(ap);
+    fclose(fp);
+	return Ok;
+}
+
+Result redirectFd(int srcFd, const char *destFileName)
+{
+	int destFd = open(destFileName, O_WRONLY);
+	if (destFd == -1)
+		return Err;
+
+	if (dup2(destFd, srcFd) == -1) {
+		close(destFd);
+		return Err;
+	}
+
+	close(destFd);
+	return Ok;
+}
+
+Result traverseFile(const char *fileName, const int bufSize, bool (*action)(char[bufSize]))
+{
+	FILE *fp = fopen(fileName, "r");
+	if (fp == NULL)
+		return Err;
+
+	char buf[bufSize];
+	while (fgets(buf, bufSize, fp) && action(buf));
+
+	return Ok;
+}
+
+void getFullFileName(const char *dirName, const char *fileName, char *dest, int destLen)
+{
+	snprintf(dest, destLen, "%s/%s", dirName, fileName);
+}
+
+Result popen2(char *path, char *argv[], FILE *ppipe[2])
+{
+	int output[2];
+	int input[2];
+
+	if (pipe(output) == -1 || pipe(input) == -1)
+		return Err;
+
+	int pid = fork();
+
+	if (pid == -1)
+		return Err;
+
+	if (pid) {
+		// parent
+		close(output[Write]);
+		ppipe[Write] = fdopen(input[Write], "w");
+		ppipe[Read] = fdopen(output[Read], "r");
+	} else {
+		// child
+		dup2(input[Read], STDIN_FILENO);
+		dup2(output[Write], STDOUT_FILENO);
+		close(input[Write]);
+		close(input[Read]);
+		close(output[Write]);
+		close(output[Read]);
+		execvp(path, argv);
+		exit(EXIT_FAILURE);
+	}
+
+	return Ok;
+}
+
+#endif
 #endif
