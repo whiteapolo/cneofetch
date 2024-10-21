@@ -415,5 +415,27 @@ void scannerFree(Scanner *scanner)
 	free(scanner->line.data);
 }
 
+int strDisplayedLength(const strSlice *s)
+{
+    bool escapeSeq = false;
+    int len = 0;
+
+	for (int i = 0; i < s->len; i++) {
+		const char c = s->data[i];
+		if (c == '\e')
+			escapeSeq = true;
+		else if (escapeSeq == true && c == 'm')
+			escapeSeq = false;
+		else if (escapeSeq)
+			continue;
+		else if (c == '\t')
+			len += 8;
+		else
+			len++;
+	}
+
+    return len;
+}
+
 #endif
 #endif
