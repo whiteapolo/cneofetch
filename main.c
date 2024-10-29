@@ -3,13 +3,13 @@
 #include <sys/utsname.h>
 
 #define STRING_IMPL
-#include "external/string.h"
+#include "mystb/string.h"
 
 #define PATH_IMPL
-#include "external/path.h"
+#include "mystb/path.h"
 
 #define CURSOR_IMPL
-#include "external/cursor.h"
+#include "mystb/cursor.h"
 
 #include "logo.h"
 
@@ -31,23 +31,23 @@ void printTerm();
 void printDektop();
 
 void (*const modules[])() = {
-    // printOS,
+    printOS,
     printCpu,
-    // printBattery,
-    // printKernel,
-    // printDektop,
-    // printShell,
-    // printPackages,
-    // printUpTime,
+    printBattery,
+    printKernel,
+    printDektop,
+    printShell,
+    printPackages,
+    printUpTime,
     // printTerm,
 };
 
-const int modulesSize = sizeof(modules) / sizeof(modules[0]);
+const unsigned int modulesSize = sizeof(modules) / sizeof(modules[0]);
 
 typedef struct {
 	strSlice data;
-    int x;
-    int y;
+    unsigned int x;
+    unsigned int y;
 } Logo;
 
 typedef struct {
@@ -72,28 +72,23 @@ int max(int a, int b)
 
 void printOS()
 {
-	return;
-    // string file = newStr("");
-    // if (readWholeFileB(&file, "/etc/os-release", 4096) != Ok) {
-    //     strFree(&file);
-    //     return;
-    // }
-    // strView prefix = newStrView("PRETTY_NAME=\"");
-    // int start = strStr(file, prefix, 0);
-    // if (start == -1) {
-    //     strFree(&file);
-    //     return;
-    // }
-    // start += prefix.len;
-    // int end = strStr(file, newStrView("\"\n"), start);
-    // if (end == -1) {
-    //     strFree(&file);
-    //     return;
-    // }
-    // strView res = newStrViewRange(file, start, end);
-    // printf(B1"│ OS:"C0" %.*s\n", res.len, res.data);
+	string s = readWholeFile("/etc/os-release");
+	const char *prefix = "PRETTY_NAME";
+	const int prefixLen = strlen(prefix);
 
-    // strFree(&file);
+	strSlice line = strTokStart(s, "\n");
+	while (!strIsEmpty(line)) {
+		if (strIsEqualN(line, prefix, prefixLen)) {
+			string prettyName = newStrSlice(line, prefixLen + 2, -2, 1);
+			printf(B1"│ OS:"C0" %s\n", prettyName.data);
+			strFree(&prettyName);
+			break;
+		}
+		line = strTok(s, line, "\n");
+	}
+
+	strFree(&s);
+	return;
 }
 
 void printCpu()
@@ -163,7 +158,7 @@ void printPackage(PackageQuery pq)
 		return;
 
 	int num;
-	if (fscanf(fp, "%d", &num) != 1) {
+	if (fscanf(fp, "%d", &num) != 1 || num == 0) {
 		pclose(fp);
 		return;
 	}
@@ -201,16 +196,15 @@ void printDektop()
 
 Logo newLogo(const char *data)
 {
-    Logo logo = {
-		.data = newStrSlice(data, strlen(data)),
-		.x = 0,
-		.y = strCountc(&logo.data, '\n'),
-	};
+    Logo logo;
+	logo.data = sliceStr(data, strlen(data));
+	logo.x = 0;
+	logo.y = strCountc(logo.data, '\n');
 
-	strSlice line = strTokStart(&logo.data, "\n");
-	while (!strIsEmpty(&line)) {
-		logo.x = max(logo.x, strDisplayedLength(&line));
-		line = strTok(&logo.data, &line, "\n");
+	strSlice line = strTokStart(logo.data, "\n");
+	while (!strIsEmpty(line)) {
+		logo.x = max(logo.x, strDisplayedLength(line));
+		line = strTok(logo.data, line, "\n");
 	}
 
     return logo;
@@ -218,12 +212,12 @@ Logo newLogo(const char *data)
 
 void printLogo(const Logo *logo)
 {
-    strPrint(&logo->data);
+    strPrint(logo->data);
 }
 
-void printModules(void (*const modules[])(), int size, int rightOffset)
+void printModules(int rightOffset)
 {
-    for (int i = 0; i < size; i++) {
+    for (unsigned short i = 0; i < modulesSize; i++) {
         setCursorX(rightOffset);
         modules[i]();
     }
@@ -240,11 +234,11 @@ int main(void)
 
     cursorUp(logo.y - TOP_MARGIN);
 
-    printModules(modules, modulesSize, logo.x + MODULES_MARGIN_FROM_LOGO + 1);
+    printModules(logo.x + MODULES_MARGIN_FROM_LOGO + 1);
 
     setCursorX(0);
     if (logo.y > modulesSize + TOP_MARGIN)
-        cursorDown(logo.y - TOP_MARGIN - modulesSize + 1);
+        cursorDown(logo.y - TOP_MARGIN - modulesSize);
 
     enableLineWrap();
     showCursor();
