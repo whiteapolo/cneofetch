@@ -73,22 +73,12 @@ int max(int a, int b)
 void printOS()
 {
 	string s = readWholeFile("/etc/os-release");
-	const char *prefix = "PRETTY_NAME";
-	const int prefixLen = strlen(prefix);
-
-	strSlice line = strTokStart(s, "\n");
-	while (!strIsEmpty(line)) {
-		if (strIsEqualN(line, prefix, prefixLen)) {
-			string prettyName = newStrSlice(line, prefixLen + 2, -2, 1);
-			printf(B1"│ OS:"C0" %s\n", prettyName.data);
-			strFree(&prettyName);
-			break;
-		}
-		line = strTok(s, line, "\n");
-	}
-
+	if (strIsEmpty(s))
+		return;
+	strSlice name = strExtractBetweenC(s, "PRETTY_NAME=\"", "\"");
+	if (!strIsEmpty(name))
+		printf(B1"│ OS:"C0" %.*s\n", (int)name.len, name.data);
 	strFree(&s);
-	return;
 }
 
 void printCpu()
@@ -121,20 +111,18 @@ void printShell()
 
 void printUpTime()
 {
-    int seconds;
-    if (readFile("/proc/uptime", "%d ", &seconds) != Ok) {
-        return;
-    }
+	int seconds;
+	if (readFile("/proc/uptime", "%d ", &seconds) != Ok)
+		return;
 
-	int days    = (seconds / DAY_IN_SECONDS);
-	int hours   = (seconds / HOUR_IN_SECONDS) % 24;
-	int minutes = (seconds / MINUTE_IN_SECONDS) % 60;
+	const int days = (seconds / DAY_IN_SECONDS);
+	const int hours = (seconds / HOUR_IN_SECONDS) % 24;
+	const int minutes = (seconds / MINUTE_IN_SECONDS) % 60;
 
     printf(B8"│ Uptime:"C0 " ");
 
-    if (days) {
+    if (days)
         printf("%d days", days);
-    }
 
     if (hours) {
         if (days)
@@ -215,7 +203,7 @@ void printLogo(const Logo *logo)
     strPrint(logo->data);
 }
 
-void printModules(int rightOffset)
+void printModules(const int rightOffset)
 {
     for (unsigned short i = 0; i < modulesSize; i++) {
         setCursorX(rightOffset);
