@@ -111,32 +111,23 @@ void printShell()
 
 void printUpTime()
 {
-	int seconds;
-	if (readFile("/proc/uptime", "%d ", &seconds) != Ok)
+	unsigned int seconds;
+	if (readFile("/proc/uptime", "%u ", &seconds) != Ok)
 		return;
 
-	const int days = (seconds / DAY_IN_SECONDS);
-	const int hours = (seconds / HOUR_IN_SECONDS) % 24;
-	const int minutes = (seconds / MINUTE_IN_SECONDS) % 60;
+	const unsigned int days = (seconds / DAY_IN_SECONDS);
+	const unsigned int hours = (seconds / HOUR_IN_SECONDS) % 24;
+	const unsigned int minutes = (seconds / MINUTE_IN_SECONDS) % 60;
 
     printf(B8"│ Uptime:"C0 " ");
-
-    if (days)
-        printf("%d days", days);
-
-    if (hours) {
-        if (days)
-            printf(", ");
-        printf("%d hours", hours);
-    }
-
-    if (minutes) {
-        if (hours || days)
-            printf(", ");
-        printf("%d mins", minutes);
-    }
-
-    printf("\n");
+	if (days > 0)
+		printf("%d days, ", days);
+	if (hours > 0)
+		printf("%d hours, ", hours);
+	if (minutes > 0)
+		printf("%d mins, ", minutes);
+	cursorLeft(2);
+    printf("  \n");
 }
 
 void printPackage(PackageQuery pq)
