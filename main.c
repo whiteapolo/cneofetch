@@ -130,19 +130,15 @@ void printUpTime()
     printf("  \n");
 }
 
-void printPackage(PackageQuery pq)
+void printPackage(const char *name, const char *commandToRetrive)
 {
-	FILE *fp = popen(pq.command, "r");
+	FILE *fp = popen(commandToRetrive, "r");
 	if (fp == NULL)
 		return;
 
 	int num;
-	if (fscanf(fp, "%d", &num) != 1 || num == 0) {
-		pclose(fp);
-		return;
-	}
-
-    printf(" %d (%s),", num, pq.name);
+	if (fscanf(fp, "%d", &num) == 1 && num > 0)
+		printf(" %d (%s),", num, name);
 	pclose(fp);
 }
 
@@ -152,7 +148,7 @@ void printPackages()
 
     for (int i = 0; i < packageQuerySize; i++) {
         PackageQuery pq = packageQuery[i];
-        printPackage(pq);
+        printPackage(pq.name, pq.command);
     }
 
     cursorLeft(1); // remove the last ','
