@@ -3,13 +3,13 @@
 #include <sys/utsname.h>
 
 #define STRING_IMPL
-#include "mystb/string.h"
+#include "mmystb/string.h"
 
 #define PATH_IMPL
-#include "mystb/path.h"
+#include "mmystb/path.h"
 
 #define CURSOR_IMPL
-#include "mystb/cursor.h"
+#include "mmystb/cursor.h"
 
 #include "logo.h"
 
